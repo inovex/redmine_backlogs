@@ -86,32 +86,31 @@ module BacklogsPlugin
 
           return '' unless Backlogs.configured?(issue.project)
 
-          snippet = ''
+          rows = IssuesHelper::IssueFieldsRows.new
 
           project = context[:project]
 
           if issue.is_story?
-            snippet += "<tr><th>#{l(:field_story_points)}</th><td>#{RbStory.find(issue.id).points_display}</td>"
+            rows.left l(:field_story_points), RbStory.find(issue.id).points_display
             unless issue.remaining_hours.nil?
-              snippet += "<th>#{l(:field_remaining_hours)}</th><td>#{l_hours(issue.remaining_hours)}</td>"
+              rows.right l(:field_remaining_hours), l_hours(issue.remaining_hours)
             end
-            snippet += "</tr>"
             vbe = issue.velocity_based_estimate
-            snippet += "<tr><th>#{l(:field_velocity_based_estimate)}</th><td>#{vbe ? vbe.to_s + ' days' : '-'}</td></tr>"
+            rows.left l(:field_velocity_based_estimate), (vbe ? vbe.to_s + ' days' : '-')
 
             unless issue.release_id.nil?
               release = RbRelease.find(issue.release_id)
-              snippet += "<tr><th>#{l(:field_release)}</th><td>#{link_to(release.name, url_for_prefix_in_hooks + url_for({:controller => 'rb_releases', :action => 'show', :release_id => release}))}</td>"
+              rows.left l(:field_release), link_to(release.name, url_for_prefix_in_hooks + url_for({:controller => 'rb_releases', :action => 'show', :release_id => release}))
               relation_translate = l("label_release_relationship_#{RbStory.find(issue.id).release_relationship}")
-              snippet += "<th>#{l(:field_release_relationship)}</th><td>#{relation_translate}</td></tr>"
+              rows.right l(:field_release_relationship), relation_translate
             end
           end
 
           if issue.is_task? && User.current.allowed_to?(:update_remaining_hours, project) != nil
-            snippet += "<tr><th>#{l(:field_remaining_hours)}</th><td>#{issue.remaining_hours}</td></tr>"
+            rows.left l(:field_remaining_hours), issue.remaining_hours
           end
 
-          return snippet
+          return rows.to_html
         rescue => e
           exception(context, e)
           return ''
